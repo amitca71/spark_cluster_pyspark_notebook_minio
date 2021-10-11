@@ -1,0 +1,81 @@
+version: '2'
+
+services:
+  s3:
+    image: minio/minio
+    container_name: s3
+    volumes:
+        - ./buckets:/data:consistent
+    expose:
+        - "9000"
+    ports:
+        - "9000:9000"
+    environment:
+        - MINIO_ACCESS_KEY=minio
+        - MINIO_SECRET_KEY=minio123
+    command: minio server /data
+    networks:
+        - spark
+    healthcheck:
+        test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+        interval: 30s
+        timeout: 20s
+        retries: 3
+  spark:
+    image: amitca71/bitnami/spark:python3.9.7
+    hostname: spark
+    environment:
+      - SPARK_MODE=master
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+      - PYSPARK_SUBMIT_ARGS=--packages com.amazonaws:aws-java-sdk-bundle:1.11.819,org.apache.hadoop:hadoop-aws:3.2.0 pyspark-shell
+    ports:
+      - '8080:8080'
+      - '7077:7077'
+    networks:
+      - spark
+  spark-worker-1:
+    image: amitca71/bitnami/spark:python3.9.7
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark:7077
+      - SPARK_WORKER_MEMORY=1G
+      - SPARK_WORKER_CORES=1
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+      - PYSPARK_SUBMIT_ARGS=--packages com.amazonaws:aws-java-sdk-bundle:1.11.819,org.apache.hadoop:hadoop-aws:3.2.0 pyspark-shell
+    networks:
+      - spark
+  spark-worker-2:
+    image: amitca71/bitnami/spark:python3.9.7
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark:7077
+      - SPARK_WORKER_MEMORY=1G
+      - SPARK_WORKER_CORES=1
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+      - PYSPARK_SUBMIT_ARGS=--packages com.amazonaws:aws-java-sdk-bundle:1.11.819,org.apache.hadoop:hadoop-aws:3.2.0 pyspark-shell
+    networks:
+      - spark
+        # jupyterlab with pyspark
+  pyspark:
+    hostname: "pyspark"
+    image: jupyter/pyspark-notebook:latest
+    environment:
+      - JUPYTER_ENABLE_LAB="no"
+      - PYSPARK_SUBMIT_ARGS=--packages com.amazonaws:aws-java-sdk-bundle:1.11.819,org.apache.hadoop:hadoop-aws:3.2.0 pyspark-shell
+    ports:
+      - "9999:8888"
+    volumes:
+      - ./data:/home/jovyan/work
+    networks:
+      - spark
+networks:
+  spark:
