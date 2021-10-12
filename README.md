@@ -1,4 +1,5 @@
-this is a demo for local spark with 2 workers, accessed from jupyter notebook and write to minio file on local system to emulate s3
+this is a demo for local spark with 2 workers, accessed from jupyter notebook
+it writes delta files to minio on local system to emulate s3
 
 quick start:
 1. boot: 
